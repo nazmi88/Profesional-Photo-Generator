@@ -1,0 +1,5 @@
+{
+  "name": "ProHeadshot AI",
+  "description": "Professional AI photoshoot generator. Transform your selfies into professional passport-style headshots with custom outfits and backgrounds using Gemini 2.5 Flash Image.",
+  "requestFramePermissions": []
+}
