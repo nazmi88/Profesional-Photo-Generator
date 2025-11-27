@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { Header } from './components/Header';
 import { ImageUpload } from './components/ImageUpload';
-import { OUTFIT_OPTIONS, BACKGROUND_PROMPTS } from './constants';
+import { OUTFIT_OPTIONS, BACKGROUND_PROMPTS, DAILY_GENERATION_LIMIT } from './constants';
 import { Gender, BackgroundColor, OutfitOption } from './types';
 import { generateProfessionalHeadshot } from './services/geminiService';
-import { Loader2, Download, Wand2, RefreshCw, AlertCircle, Camera } from 'lucide-react';
+import { Loader2, Download, Wand2, RefreshCw, AlertCircle, Camera, Ban } from 'lucide-react';
 
 export default function App() {
   // State
@@ -14,6 +14,7 @@ export default function App() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   // Configuration State
   const [gender, setGender] = useState<Gender>(Gender.MALE);
@@ -24,6 +25,46 @@ export default function App() {
   // Derived state
   const availableOutfits = OUTFIT_OPTIONS.filter(o => o.gender === gender || o.gender === 'All');
   const currentOutfit = OUTFIT_OPTIONS.find(o => o.id === selectedOutfitId);
+
+  // Rate Limit Helpers
+  const checkRateLimit = () => {
+    const today = new Date().toDateString();
+    const storageKey = 'proheadshot_daily_usage';
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const data = JSON.parse(stored);
+        if (data.date === today) {
+          return data.count < DAILY_GENERATION_LIMIT;
+        }
+      }
+      return true; // No data or new day
+    } catch (e) {
+      console.error("Error reading usage data", e);
+      return true;
+    }
+  };
+
+  const incrementUsage = () => {
+    const today = new Date().toDateString();
+    const storageKey = 'proheadshot_daily_usage';
+    try {
+      const stored = localStorage.getItem(storageKey);
+      let count = 0;
+      if (stored) {
+        const data = JSON.parse(stored);
+        if (data.date === today) {
+          count = data.count;
+        }
+      }
+      localStorage.setItem(storageKey, JSON.stringify({
+        date: today,
+        count: count + 1
+      }));
+    } catch (e) {
+      console.error("Failed to save usage", e);
+    }
+  };
 
   // Handlers
   const handleImageSelected = (base64: string, mime: string) => {
@@ -42,8 +83,17 @@ export default function App() {
   const handleGenerate = async () => {
     if (!sourceImage || !currentOutfit) return;
 
+    // Check Daily Limit
+    if (!checkRateLimit()) {
+      setShowLimitModal(true);
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
+
+    // Track usage on attempt
+    incrementUsage();
 
     try {
       const result = await generateProfessionalHeadshot(
@@ -323,6 +373,32 @@ export default function App() {
             {isGenerating ? 'Generating...' : 'Generate Photoshoot'}
           </button>
        </div>
+
+       {/* Rate Limit Modal */}
+       {showLimitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl transform transition-all animate-in fade-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="p-3 bg-red-100 rounded-full">
+                <Ban className="w-8 h-8 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Daily Limit Reached</h3>
+                <p className="text-gray-500 mt-2 text-sm">
+                  You have used all {DAILY_GENERATION_LIMIT} free generations for today. 
+                  Please come back tomorrow to create more professional headshots.
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowLimitModal(false)}
+                className="w-full py-3 px-4 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-semibold transition-colors shadow-lg"
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

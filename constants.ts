@@ -1,5 +1,7 @@
 import { Gender, OutfitOption, BackgroundColor } from './types';
 
+export const DAILY_GENERATION_LIMIT = 10;
+
 export const GLOBAL_NEGATIVE_PROMPT = "no hats (unless religious), no sunglasses, no heavy makeup, no teeth-showing smile, no large logos, no busy backgrounds, no props, no shadows across face, no accessories covering face, no reflective glasses, no uniform of government/military/police.";
 
 export const OUTFIT_OPTIONS: OutfitOption[] = [
