@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { Upload, X, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
 
 interface ImageUploadProps {
   onImageSelected: (base64: string, mimeType: string) => void;
@@ -26,13 +26,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelected, onCle
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
-      // Extract pure base64 and mime type
       const match = base64String.match(/^data:(.+);base64,(.+)$/);
       if (match) {
-        onImageSelected(match[2], match[1]); // Send pure base64 data and mime type separately if needed by API, but service handles standard data URI usually. 
-        // Note: The service expects pure base64 for inlineData.data, but prompts usually work with data URIs too if parsed.
-        // My service implementation splits it properly? 
-        // Let's pass the raw base64 data part (match[2]) and mimeType (match[1]) to the parent.
+        onImageSelected(match[2], match[1]);
       }
     };
     reader.readAsDataURL(file);
@@ -59,23 +55,28 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelected, onCle
 
   if (selectedImage) {
     return (
-      <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden shadow-md bg-gray-100 group">
+      <div className="relative w-full aspect-[3/4] sm:aspect-[4/3] rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5 group bg-slate-100">
         <img 
           src={`data:image/jpeg;base64,${selectedImage}`} 
           alt="Original" 
-          className="w-full h-full object-cover" 
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
         />
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
           <button 
             onClick={onClear}
-            className="bg-white/90 text-red-600 px-4 py-2 rounded-full font-medium flex items-center gap-2 hover:bg-white transition-colors"
+            className="bg-white text-red-600 px-6 py-2.5 rounded-full font-semibold flex items-center gap-2 hover:bg-red-50 transition-all shadow-xl transform hover:scale-105"
           >
             <X className="w-4 h-4" />
-            Remove Photo
+            Change Photo
           </button>
         </div>
-        <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-          Original
+
+        {/* Status Badge */}
+        <div className="absolute top-3 right-3 bg-green-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Photo Ready
         </div>
       </div>
     );
@@ -87,29 +88,34 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelected, onCle
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`
-        w-full aspect-[3/4] rounded-xl border-2 border-dashed transition-all duration-200 flex flex-col items-center justify-center p-6 text-center cursor-pointer
-        ${isDragging ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400 bg-gray-50 hover:bg-gray-100'}
+        w-full aspect-[4/3] rounded-xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center p-6 text-center cursor-pointer relative overflow-hidden
+        ${isDragging 
+          ? 'border-indigo-500 bg-indigo-50/50 scale-[1.01]' 
+          : 'border-slate-300 hover:border-indigo-400 hover:bg-slate-50'
+        }
       `}
     >
       <input 
         type="file" 
         accept="image/*" 
         onChange={handleFileChange} 
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
       />
       
-      <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
-        <Upload className={`w-8 h-8 ${isDragging ? 'text-indigo-600' : 'text-gray-400'}`} />
+      <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-colors duration-300 ${isDragging ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+        <Upload className={`w-8 h-8 ${isDragging ? 'animate-bounce' : ''}`} />
       </div>
       
-      <h3 className="text-lg font-semibold text-gray-900 mb-1">Upload Photo</h3>
-      <p className="text-sm text-gray-500 mb-4 max-w-[200px]">
-        Drag & drop or click to browse. Use a clear front-facing photo.
+      <h3 className="text-lg font-bold text-slate-900 mb-1">Click to Upload</h3>
+      <p className="text-sm text-slate-500 mb-6 max-w-[220px] leading-relaxed">
+        or drag and drop your selfie here.
+        <br/><span className="text-xs opacity-75">Front facing, good lighting works best.</span>
       </p>
       
-      <div className="flex items-center gap-2 text-xs text-gray-400">
-        <ImageIcon className="w-3 h-3" />
-        <span>JPG, PNG supported</span>
+      <div className="flex items-center gap-3 text-xs font-medium text-slate-400 uppercase tracking-wide">
+        <span className="flex items-center gap-1"><ImageIcon className="w-3 h-3" /> JPG</span>
+        <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+        <span>PNG</span>
       </div>
     </div>
   );

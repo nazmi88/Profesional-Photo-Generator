@@ -1,11 +1,10 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ImageUpload } from './components/ImageUpload';
-import { OUTFIT_OPTIONS, BACKGROUND_PROMPTS, DAILY_GENERATION_LIMIT } from './constants';
-import { Gender, BackgroundColor, OutfitOption } from './types';
+import { OUTFIT_OPTIONS, DAILY_GENERATION_LIMIT } from './constants';
+import { Gender, BackgroundColor } from './types';
 import { generateProfessionalHeadshot } from './services/geminiService';
-import { Loader2, Download, Wand2, RefreshCw, AlertCircle, Camera, Ban } from 'lucide-react';
+import { Loader2, Download, Wand2, RefreshCw, AlertCircle, Camera, Ban, User, User2, Check, Sparkles } from 'lucide-react';
 
 export default function App() {
   // State
@@ -21,10 +20,23 @@ export default function App() {
   const [selectedOutfitId, setSelectedOutfitId] = useState<string>(OUTFIT_OPTIONS[0].id);
   const [selectedBg, setSelectedBg] = useState<BackgroundColor>(BackgroundColor.WHITE);
   const [customPrompt, setCustomPrompt] = useState<string>('');
+  
+  // Refs for scrolling
+  const resultRef = useRef<HTMLDivElement>(null);
 
   // Derived state
   const availableOutfits = OUTFIT_OPTIONS.filter(o => o.gender === gender || o.gender === 'All');
   const currentOutfit = OUTFIT_OPTIONS.find(o => o.id === selectedOutfitId);
+
+  // Auto-scroll to result on generation finish
+  useEffect(() => {
+    if (generatedImage && resultRef.current) {
+        // On mobile, scroll to result
+        if (window.innerWidth < 1024) {
+            resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+  }, [generatedImage]);
 
   // Rate Limit Helpers
   const checkRateLimit = () => {
@@ -83,7 +95,6 @@ export default function App() {
   const handleGenerate = async () => {
     if (!sourceImage || !currentOutfit) return;
 
-    // Check Daily Limit
     if (!checkRateLimit()) {
       setShowLimitModal(true);
       return;
@@ -91,8 +102,6 @@ export default function App() {
 
     setIsGenerating(true);
     setError(null);
-
-    // Track usage on attempt
     incrementUsage();
 
     try {
@@ -123,304 +132,336 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
       <Header />
 
-      <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        
+        {/* Hero Section */}
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
+            Professional AI Headshots <br className="hidden sm:block" />
+            <span className="text-indigo-600">in seconds.</span>
+          </h1>
+          <p className="text-lg text-slate-600">
+            Transform your selfies into studio-quality passport photos and professional profiles without leaving your home.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
           {/* Left Column: Input & Configuration */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-5 space-y-8">
             
             {/* 1. Upload Section */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-                Upload Photo
-              </h2>
-              <ImageUpload 
-                onImageSelected={handleImageSelected} 
-                onClear={handleClear} 
-                selectedImage={sourceImage} 
-              />
-            </div>
-
-            {/* 2. Configuration Section - Only show if image uploaded */}
-            <div className={`transition-all duration-300 ${!sourceImage ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-6">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-                  Configure Style
+            <section className="bg-white rounded-2xl p-1 shadow-sm border border-slate-100 ring-1 ring-slate-900/5">
+              <div className="p-5 border-b border-slate-50">
+                <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                  <span className="bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm">1</span>
+                  Upload Your Photo
                 </h2>
+              </div>
+              <div className="p-5">
+                <ImageUpload 
+                  onImageSelected={handleImageSelected} 
+                  onClear={handleClear} 
+                  selectedImage={sourceImage} 
+                />
+              </div>
+            </section>
 
+            {/* 2. Configuration Section */}
+            <section 
+              className={`bg-white rounded-2xl shadow-sm border border-slate-100 ring-1 ring-slate-900/5 transition-all duration-500 ease-in-out ${
+                !sourceImage ? 'opacity-60 pointer-events-none grayscale-[0.5]' : 'opacity-100'
+              }`}
+            >
+              <div className="p-5 border-b border-slate-50">
+                <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                  <span className="bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm">2</span>
+                  Customize Style
+                </h2>
+              </div>
+
+              <div className="p-6 space-y-8">
                 {/* Gender Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Subject Gender</label>
-                  <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg">
-                    {[Gender.MALE, Gender.FEMALE].map((g) => (
-                      <button
-                        key={g}
-                        onClick={() => {
-                          setGender(g);
-                          // Reset outfit if switching gender to ensure valid selection
-                          const firstValid = OUTFIT_OPTIONS.find(o => o.gender === g)?.id;
-                          if (firstValid) setSelectedOutfitId(firstValid);
-                        }}
-                        className={`py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                          gender === g 
-                            ? 'bg-white text-indigo-600 shadow-sm' 
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        {g}
-                      </button>
-                    ))}
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Subject Gender</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        setGender(Gender.MALE);
+                        const firstValid = OUTFIT_OPTIONS.find(o => o.gender === Gender.MALE)?.id;
+                        if (firstValid) setSelectedOutfitId(firstValid);
+                      }}
+                      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${
+                        gender === Gender.MALE 
+                          ? 'border-indigo-600 bg-indigo-50/50 text-indigo-700' 
+                          : 'border-slate-100 hover:border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      <User className="w-6 h-6" />
+                      <span className="font-medium">Male</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setGender(Gender.FEMALE);
+                        const firstValid = OUTFIT_OPTIONS.find(o => o.gender === Gender.FEMALE)?.id;
+                        if (firstValid) setSelectedOutfitId(firstValid);
+                      }}
+                      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${
+                        gender === Gender.FEMALE 
+                          ? 'border-indigo-600 bg-indigo-50/50 text-indigo-700' 
+                          : 'border-slate-100 hover:border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      <User2 className="w-6 h-6" />
+                      <span className="font-medium">Female</span>
+                    </button>
                   </div>
                 </div>
 
                 {/* Outfit Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Outfit</label>
-                  <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Outfit Style</label>
+                  <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                     {availableOutfits.map((outfit) => (
                       <button
                         key={outfit.id}
                         onClick={() => setSelectedOutfitId(outfit.id)}
-                        className={`text-left p-3 rounded-xl border transition-all ${
+                        className={`group text-left px-4 py-3 rounded-xl border-2 transition-all duration-200 relative ${
                           selectedOutfitId === outfit.id
-                            ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            ? 'border-indigo-600 bg-indigo-50/50 shadow-sm z-10'
+                            : 'border-transparent bg-slate-50 hover:bg-slate-100 hover:border-slate-200'
                         }`}
                       >
-                        <div className="font-medium text-gray-900 text-sm">{outfit.label}</div>
-                        <div className="text-xs text-gray-500 line-clamp-1">{outfit.description}</div>
+                        <div className="flex justify-between items-center mb-0.5">
+                          <span className={`font-semibold text-sm ${selectedOutfitId === outfit.id ? 'text-indigo-900' : 'text-slate-900'}`}>
+                            {outfit.label}
+                          </span>
+                          {selectedOutfitId === outfit.id && (
+                            <Check className="w-4 h-4 text-indigo-600" />
+                          )}
+                        </div>
+                        <p className={`text-xs ${selectedOutfitId === outfit.id ? 'text-indigo-700/80' : 'text-slate-500'}`}>
+                          {outfit.description}
+                        </p>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Background Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Background Color</label>
-                  <div className="flex flex-wrap gap-3">
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Background</label>
+                  <div className="flex flex-wrap gap-4">
                     {Object.values(BackgroundColor).map((bg) => (
-                      <button
-                        key={bg}
-                        onClick={() => setSelectedBg(bg)}
-                        className={`relative group flex flex-col items-center gap-1 transition-all ${selectedBg === bg ? 'scale-105' : 'hover:scale-105'}`}
-                      >
-                        <div 
-                          className={`w-10 h-10 rounded-full border-2 shadow-sm ${
-                            selectedBg === bg ? 'border-indigo-600 ring-2 ring-indigo-100' : 'border-gray-200'
-                          }`}
-                          style={{
-                            backgroundColor: 
-                              bg === BackgroundColor.WHITE ? '#F5F5F5' :
-                              bg === BackgroundColor.BLUE ? '#2E9AFF' :
-                              bg === BackgroundColor.GREY ? '#9ca3af' : '#f3f4f6'
-                          }}
-                        >
-                          {bg === BackgroundColor.OFFICE && (
-                            <div className="w-full h-full rounded-full overflow-hidden opacity-50 bg-[url('https://picsum.photos/id/4/50/50')] bg-cover" />
-                          )}
-                        </div>
-                        <span className={`text-[10px] font-medium ${selectedBg === bg ? 'text-indigo-600' : 'text-gray-500'}`}>
-                          {bg}
-                        </span>
-                      </button>
+                      <div key={bg} className="flex flex-col items-center gap-2">
+                         <button
+                            onClick={() => setSelectedBg(bg)}
+                            className={`w-12 h-12 rounded-full shadow-sm flex items-center justify-center transition-transform hover:scale-105 relative overflow-hidden ${
+                              selectedBg === bg ? 'ring-2 ring-offset-2 ring-indigo-600' : 'ring-1 ring-slate-200'
+                            }`}
+                            style={{
+                              backgroundColor: 
+                                bg === BackgroundColor.WHITE ? '#F5F5F5' :
+                                bg === BackgroundColor.BLUE ? '#2E9AFF' :
+                                bg === BackgroundColor.GREY ? '#9ca3af' : '#f3f4f6'
+                            }}
+                          >
+                            {bg === BackgroundColor.OFFICE && (
+                              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=100&q=80')] bg-cover opacity-60" />
+                            )}
+                            {selectedBg === bg && (
+                              <Check className={`w-5 h-5 ${bg === BackgroundColor.WHITE ? 'text-slate-800' : 'text-white'} relative z-10 drop-shadow-md`} />
+                            )}
+                         </button>
+                         <span className="text-xs font-medium text-slate-600">{bg.replace('Blurred ', '')}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Custom Prompt */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Additional Instructions <span className="text-gray-400 font-normal">(Optional)</span>
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider flex justify-between">
+                    Extra Instructions
+                    <span className="text-slate-400 font-normal normal-case text-xs bg-slate-100 px-2 py-0.5 rounded-full">Optional</span>
                   </label>
                   <textarea
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
-                    placeholder="e.g., Make it look vintage, add glasses, etc."
-                    className="w-full text-sm p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none h-20"
+                    placeholder="e.g. Add glasses, make me smile slightly..."
+                    className="w-full text-sm p-4 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none h-24 shadow-sm"
                   />
                 </div>
-
-                {/* Generate Button */}
+              </div>
+            </section>
+            
+            {/* Desktop Generate Button */}
+            <div className="hidden lg:block">
                 <button
                   onClick={handleGenerate}
                   disabled={isGenerating || !sourceImage}
-                  className={`w-full py-4 px-6 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 ${
+                  className={`w-full py-4 px-6 rounded-2xl font-bold text-lg text-white shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] hover:-translate-y-1 ${
                     isGenerating || !sourceImage
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/25'
+                      ? 'bg-slate-300 cursor-not-allowed shadow-none'
+                      : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500'
                   }`}
                 >
                   {isGenerating ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Generating...
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      Processing...
                     </>
                   ) : (
                     <>
-                      <Wand2 className="w-5 h-5" />
+                      <Wand2 className="w-6 h-6" />
                       Generate Photoshoot
                     </>
                   )}
                 </button>
-              </div>
+                <p className="text-center text-xs text-slate-400 mt-3">
+                    ~5-10 seconds processing time • Powered by Gemini 2.5
+                </p>
             </div>
+
           </div>
 
           {/* Right Column: Result Display */}
-          <div className="lg:col-span-8 flex flex-col h-full min-h-[600px]">
-             {/* Error Message */}
-             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700">
-                <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold">Generation Failed</h3>
-                  <p className="text-sm opacity-90">{error}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex-grow flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Result Gallery</h2>
-                {generatedImage && (
-                  <button 
-                    onClick={handleDownload}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
-                )}
-              </div>
-
-              <div className="flex-grow flex items-center justify-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 overflow-hidden relative">
+          <div className="lg:col-span-7 flex flex-col h-full" ref={resultRef}>
+             {/* Sticky container for desktop */}
+             <div className="sticky top-24 space-y-6">
                 
-                {isGenerating ? (
-                  <div className="text-center p-8 space-y-4 max-w-md">
-                    <div className="relative w-20 h-20 mx-auto">
-                      <div className="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
-                      <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Sparkles className="w-8 h-8 text-indigo-600 animate-pulse" />
-                      </div>
-                    </div>
+                {/* Error Banner */}
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 shadow-sm animate-in fade-in slide-in-from-top-2">
+                    <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900">Creating your masterpiece</h3>
-                      <p className="text-gray-500 text-sm mt-2">
-                        Gemini is analyzing your photo, tailoring the {currentOutfit?.label}, and setting up the studio lighting. This usually takes 5-10 seconds.
-                      </p>
+                      <h3 className="font-semibold">Generation Failed</h3>
+                      <p className="text-sm opacity-90">{error}</p>
                     </div>
-                  </div>
-                ) : generatedImage ? (
-                  <div className="w-full h-full flex flex-col lg:flex-row gap-4 p-4 items-center justify-center">
-                     <div className="relative group max-w-md w-full shadow-2xl rounded-lg overflow-hidden">
-                        <img 
-                          src={generatedImage} 
-                          alt="Generated Headshot" 
-                          className="w-full h-auto object-contain"
-                        />
-                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center p-12 opacity-60">
-                    <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-6 flex items-center justify-center">
-                      <Camera className="w-10 h-10 text-gray-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Image Generated Yet</h3>
-                    <p className="text-gray-500 max-w-sm mx-auto">
-                      Upload your photo on the left, choose your style, and hit generate to see the magic happen.
-                    </p>
                   </div>
                 )}
-              </div>
-              
-              {generatedImage && !isGenerating && (
-                <div className="mt-6 flex justify-end">
-                  <button
-                    onClick={() => {
-                        // Reset prompt to trigger a slight variation if clicked again? 
-                        // Actually just a 'Regenerate' using same settings is useful.
-                        handleGenerate();
-                    }} 
-                    className="text-indigo-600 text-sm font-medium hover:text-indigo-800 flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Regenerate with same settings
-                  </button>
+
+                <div className="bg-white rounded-3xl p-1 shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative min-h-[500px] flex flex-col">
+                  {/* Result Header */}
+                  <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between bg-white/80 backdrop-blur-sm z-10">
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-indigo-500" />
+                        Result Gallery
+                    </h2>
+                    {generatedImage && !isGenerating && (
+                      <div className="flex gap-2">
+                          <button
+                            onClick={handleGenerate} 
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-200"
+                            title="Regenerate with same settings"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            <span className="hidden sm:inline">Retry</span>
+                          </button>
+                          <button 
+                            onClick={handleDownload}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-indigo-200"
+                          >
+                            <Download className="w-4 h-4" />
+                            Save
+                          </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-grow flex items-center justify-center bg-slate-50/50 relative">
+                    
+                    {isGenerating ? (
+                      <div className="text-center p-8 space-y-6 max-w-sm animate-in fade-in zoom-in duration-500">
+                        <div className="relative w-24 h-24 mx-auto">
+                          <div className="absolute inset-0 bg-indigo-100 rounded-full animate-ping opacity-25"></div>
+                          <div className="relative bg-white p-4 rounded-full shadow-lg border border-indigo-50">
+                            <Loader2 className="w-16 h-16 text-indigo-600 animate-spin" />
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-slate-900">Crafting your photo...</h3>
+                          <p className="text-slate-500 mt-2">
+                            Applying {currentOutfit?.label} and setting up studio lighting. This only takes a moment.
+                          </p>
+                        </div>
+                      </div>
+                    ) : generatedImage ? (
+                      <div className="w-full h-full p-6 flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] animate-in fade-in duration-700">
+                         <div className="relative group max-w-lg w-full shadow-2xl shadow-indigo-900/10 rounded-xl overflow-hidden border-4 border-white transition-transform hover:scale-[1.01] duration-300">
+                            <img 
+                              src={generatedImage} 
+                              alt="Generated Headshot" 
+                              className="w-full h-auto object-contain bg-white"
+                            />
+                         </div>
+                      </div>
+                    ) : (
+                      <div className="text-center p-12 opacity-50 flex flex-col items-center">
+                        <div className="w-32 h-32 bg-slate-100 rounded-full mb-6 flex items-center justify-center border-4 border-white shadow-inner">
+                          <Camera className="w-12 h-12 text-slate-300" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">Ready to Create</h3>
+                        <p className="text-slate-500 max-w-xs mx-auto leading-relaxed">
+                          Your professional photos will appear here. Start by uploading a selfie on the left.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
+             </div>
           </div>
         </div>
       </main>
 
        {/* Mobile Sticky Action Bar */}
-       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40">
+       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 p-4 z-40 safe-area-pb">
         <button
             onClick={handleGenerate}
             disabled={isGenerating || !sourceImage}
-            className={`w-full py-3 px-6 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 ${
+            className={`w-full py-3.5 px-6 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 ${
               isGenerating || !sourceImage
-                ? 'bg-gray-400 cursor-not-allowed'
+                ? 'bg-slate-300 cursor-not-allowed'
                 : 'bg-indigo-600'
             }`}
           >
+            {isGenerating ? (
+               <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+               <Wand2 className="w-5 h-5" />
+            )}
             {isGenerating ? 'Generating...' : 'Generate Photoshoot'}
           </button>
        </div>
 
        {/* Rate Limit Modal */}
        {showLimitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl transform transition-all animate-in fade-in zoom-in duration-200">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="p-3 bg-red-100 rounded-full">
-                <Ban className="w-8 h-8 text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform transition-all animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="flex flex-col items-center text-center space-y-5">
+              <div className="p-4 bg-red-50 rounded-full ring-8 ring-red-50/50">
+                <Ban className="w-10 h-10 text-red-500" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Daily Limit Reached</h3>
-                <p className="text-gray-500 mt-2 text-sm">
+                <h3 className="text-2xl font-bold text-slate-900">Daily Limit Reached</h3>
+                <p className="text-slate-500 mt-2 text-base leading-relaxed">
                   You have used all {DAILY_GENERATION_LIMIT} free generations for today. 
-                  Please come back tomorrow to create more professional headshots.
+                  <br/>Please come back tomorrow!
                 </p>
               </div>
               <button 
                 onClick={() => setShowLimitModal(false)}
-                className="w-full py-3 px-4 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-semibold transition-colors shadow-lg"
+                className="w-full py-3.5 px-6 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold transition-colors shadow-lg shadow-slate-900/20"
               >
-                Understood
+                Got it
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-// Helper icon
-function Sparkles({ className }: { className?: string }) {
-  return (
-    <svg 
-      className={className} 
-      xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
-      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
-      <path d="M5 3v4" />
-      <path d="M9 3v4" />
-      <path d="M3 5h4" />
-      <path d="M3 9h4" />
-    </svg>
   );
 }
