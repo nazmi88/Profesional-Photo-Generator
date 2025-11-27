@@ -11,7 +11,6 @@ export const Header: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900 leading-none">ProHeadshot AI</h1>
-            <p className="text-xs text-gray-500 font-medium">Powered by Gemini 2.5</p>
           </div>
         </div>
         <div className="hidden md:flex items-center gap-4 text-sm text-gray-600">
