@@ -2,9 +2,16 @@ import { GoogleGenAI } from "@google/genai";
 import { BackgroundColor, Gender, OutfitOption } from "../types";
 import { BACKGROUND_PROMPTS, GLOBAL_NEGATIVE_PROMPT } from "../constants";
 
+// Declare the global constant injected by Vite
+declare const __GEMINI_API_KEY__: string | undefined;
+
 const getApiKey = (): string => {
-  const apiKey = process.env.API_KEY;
+  // 1. Check the global constant injected by vite.config.ts (covers API_KEY and VITE_API_KEY from build env)
+  // 2. Fallback to standard import.meta.env.VITE_API_KEY
+  const apiKey = (typeof __GEMINI_API_KEY__ !== 'undefined' ? __GEMINI_API_KEY__ : undefined) || import.meta.env.VITE_API_KEY;
+  
   if (!apiKey) {
+    console.error("API Key not found. Please ensure API_KEY or VITE_API_KEY is set in your environment variables and you have rebuilt the app.");
     throw new Error("API Key is missing. Please check your environment variables.");
   }
   return apiKey;
